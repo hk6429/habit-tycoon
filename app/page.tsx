@@ -29,7 +29,7 @@ import {
   weeksLeft,
 } from "@/lib/game";
 
-type Screen = "title" | "setup" | "hub" | "quiz" | "result" | "ending";
+type Screen = "intro" | "title" | "setup" | "hub" | "quiz" | "result" | "ending";
 type Expr = "neutral" | "happy" | "sad";
 
 function shuffle<T>(arr: T[]): T[] {
@@ -135,7 +135,7 @@ function HabitBars({ masteredKPs }: { masteredKPs: string[] }) {
 }
 
 export default function Home() {
-  const [screen, setScreen] = useState<Screen>("title");
+  const [screen, setScreen] = useState<Screen>("intro");
   const [game, setGame] = useState<GameState | null>(null);
   const [hasSave, setHasSave] = useState(false);
   const [studyKp, setStudyKp] = useState("");
@@ -174,6 +174,10 @@ export default function Home() {
     setGame(null);
     setHasSave(false);
     setScreen("title");
+  }
+
+  if (screen === "intro") {
+    return <Intro onDone={() => setScreen("title")} />;
   }
 
   return (
@@ -239,6 +243,29 @@ export default function Home() {
   );
 }
 
+/* ---------------- 開場影片 ---------------- */
+function Intro({ onDone }: { onDone: () => void }) {
+  return (
+    <main className="min-h-screen bg-black flex items-center justify-center">
+      <video
+        src="/intro.mp4"
+        autoPlay
+        muted
+        playsInline
+        onEnded={onDone}
+        onError={onDone}
+        className="max-h-screen max-w-full object-contain"
+      />
+      <button
+        onClick={onDone}
+        className="absolute bottom-6 right-6 text-sm text-white/70 hover:text-white bg-black/40 rounded-full px-4 py-2"
+      >
+        跳過 ▸
+      </button>
+    </main>
+  );
+}
+
 /* ---------------- 標題 ---------------- */
 function Title({
   hasSave,
@@ -253,17 +280,6 @@ function Title({
     <div className="text-center pt-8">
       <div className="mb-6">
         <Stage bg="/title.png" />
-      </div>
-      <div className="mb-6 rounded-xl overflow-hidden shadow-lg ring-1 ring-slate-800">
-        <video
-          src="/intro.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          controls
-          className="w-full aspect-video object-cover"
-        />
       </div>
       <p className="text-slate-400 text-sm mb-8">
         用一年 52 週，養成一個八年級孩子的成功品格
