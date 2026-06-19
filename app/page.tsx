@@ -254,6 +254,17 @@ function Title({
       <div className="mb-6">
         <Stage bg="/title.png" />
       </div>
+      <div className="mb-6 rounded-xl overflow-hidden shadow-lg ring-1 ring-slate-800">
+        <video
+          src="/intro.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          controls
+          className="w-full aspect-video object-cover"
+        />
+      </div>
       <p className="text-slate-400 text-sm mb-8">
         用一年 52 週，養成一個八年級孩子的成功品格
       </p>
