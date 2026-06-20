@@ -3,7 +3,7 @@ import { ALL_KPS, habitById } from "./habits";
 
 export const TOTAL_WEEKS = 52;
 export const QUIZ_SIZE = 10; // 每知識點題數
-export const PASS_THRESHOLD = 8; // 答對幾題才精通
+export const PASS_THRESHOLD = 6; // 答對幾題才精通（6/10，容許錯幾題，降低挫折）
 export const TOTAL_KPS = ALL_KPS.length; // 35
 export const STAT_MAX = 100;
 

@@ -10,7 +10,7 @@ import {
 } from "@/lib/types";
 import { HABITS, habitCounts, habitById, GROUP_LABEL } from "@/lib/habits";
 import { questionsForKP } from "@/lib/questions";
-import { judgeEnding, radarValues, abilityProfile } from "@/lib/endings";
+import { judgeEnding, radarValues, abilityProfile, tendency } from "@/lib/endings";
 import {
   TOTAL_WEEKS,
   TOTAL_KPS,
@@ -29,7 +29,10 @@ import {
   weeksLeft,
 } from "@/lib/game";
 
-type Screen = "intro" | "title" | "setup" | "hub" | "quiz" | "result" | "ending";
+type Screen = "intro" | "title" | "setup" | "hub" | "quiz" | "result" | "term" | "ending";
+
+// 期中評語觸發週（每約一學期看一次暫定走向）
+const TERM_WEEKS = [14, 27, 40];
 type Expr = "neutral" | "happy" | "sad";
 
 function shuffle<T>(arr: T[]): T[] {
@@ -229,11 +232,16 @@ export default function Home() {
               if (isFinished(game)) {
                 persist({ ...game, finished: true });
                 setScreen("ending");
+              } else if (TERM_WEEKS.includes(game.week)) {
+                setScreen("term");
               } else {
                 setScreen("hub");
               }
             }}
           />
+        )}
+        {screen === "term" && game && (
+          <TermReview game={game} onNext={() => setScreen("hub")} />
         )}
         {screen === "ending" && game && (
           <EndingView game={game} onRestart={resetGame} />
@@ -387,10 +395,15 @@ function Hub({
           重新開始
         </button>
       </div>
-      <p className="text-slate-400 text-sm mb-3">
-        第 {Math.min(game.week, TOTAL_WEEKS)} / {TOTAL_WEEKS} 週 · 精通{" "}
-        {game.masteredKPs.length} / {TOTAL_KPS} · 剩 {Math.max(weeksLeft(game), 0)} 週
-      </p>
+      <div className="flex justify-between items-center mb-3">
+        <p className="text-slate-400 text-sm">
+          第 {Math.min(game.week, TOTAL_WEEKS)} / {TOTAL_WEEKS} 週 · 精通{" "}
+          {game.masteredKPs.length} / {TOTAL_KPS} · 剩 {Math.max(weeksLeft(game), 0)} 週
+        </p>
+        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 shrink-0">
+          傾向：{tendency(game.masteredKPs)}
+        </span>
+      </div>
 
       <div className="bg-slate-900 rounded-xl p-4 mb-3">
         <StatBars stats={game.stats} />
@@ -721,12 +734,65 @@ function Result({ game, onNext }: { game: GameState; onNext: () => void }) {
 }
 
 /* ---------------- 結局（品格軸 × 能力軸） ---------------- */
+/* ---------------- 期中評語（暫定走向預告） ---------------- */
+function TermReview({ game, onNext }: { game: GameState; onNext: () => void }) {
+  const term = TERM_WEEKS.indexOf(game.week) + 1;
+  const provisional = useMemo(() => judgeEnding(game.masteredKPs), [game.masteredKPs]);
+  const lean = tendency(game.masteredKPs);
+  const success = provisional.type === "success";
+  return (
+    <div className="pt-6 pb-12 text-center">
+      <div className="mb-5 rounded-xl overflow-hidden">
+        <Stage bg={`/endings/${provisional.id}.png`} />
+      </div>
+      <p className="text-slate-400 text-sm mb-1">期中回顧 · 第 {term} 階段</p>
+      <p className="text-slate-300 mb-1">如果現在就結束養成，{game.name}會是——</p>
+      <h2 className="text-2xl font-bold mb-2">{provisional.title}</h2>
+      <span
+        className={`inline-block text-xs px-3 py-1 rounded-full mb-4 ${
+          success ? "bg-emerald-700/50 text-emerald-200" : "bg-amber-800/40 text-amber-200"
+        }`}
+      >
+        目前傾向：{lean} · 精通 {game.masteredKPs.length}/{TOTAL_KPS}
+      </span>
+      <div className="bg-slate-900 rounded-xl p-4 mb-5">
+        <HabitBars masteredKPs={game.masteredKPs} />
+      </div>
+      <p className="text-slate-300 text-sm mb-5 px-2">
+        {success
+          ? "走得不錯。剩下的週數，要再補強弱項、還是把長處磨亮？由你決定。"
+          : "還有機會翻盤。看看上面哪個習慣最弱，接下來幾週補一補，結局會很不一樣。"}
+      </p>
+      <button
+        onClick={onNext}
+        className="w-full bg-indigo-600 hover:bg-indigo-500 rounded-lg py-3 font-semibold"
+      >
+        繼續下半段
+      </button>
+    </div>
+  );
+}
+
 function EndingView({ game, onRestart }: { game: GameState; onRestart: () => void }) {
   const ending = useMemo(() => judgeEnding(game.masteredKPs), [game.masteredKPs]);
   const ability = useMemo(() => abilityProfile(game.stats), [game.stats]);
   const values = radarValues(game.masteredKPs);
   const success = ending.type === "success";
   const legendary = ending.id === "A1"; // 傳說級：全 35 知識點精通
+  const [shared, setShared] = useState(false);
+
+  function share() {
+    const c = habitCounts(game.masteredKPs);
+    const text = `我在《習慣養成記》養成了【${ending.title}】（${ending.id}）\n七習慣精通 ${game.masteredKPs.length}/${TOTAL_KPS}　分布 ${c.join("/")}\n${ending.summary}\n\n你會養成哪一種人？ https://habit-tycoon.vercel.app`;
+    if (navigator.share) {
+      navigator.share({ text }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(text).then(() => {
+        setShared(true);
+        setTimeout(() => setShared(false), 2200);
+      });
+    }
+  }
 
   return (
     <div className="pt-6 pb-12">
@@ -790,8 +856,14 @@ function EndingView({ game, onRestart }: { game: GameState; onRestart: () => voi
       <Section title="給你的真心話" body={ending.truth} accent="emerald" />
 
       <button
+        onClick={share}
+        className="w-full mt-6 border-2 border-indigo-500 text-indigo-300 hover:bg-indigo-500/10 rounded-lg py-3 font-semibold"
+      >
+        {shared ? "✓ 已複製，貼給朋友比比看" : "📣 分享我的結局"}
+      </button>
+      <button
         onClick={onRestart}
-        className="w-full mt-6 bg-slate-700 hover:bg-slate-600 rounded-lg py-3 font-semibold"
+        className="w-full mt-2 bg-slate-700 hover:bg-slate-600 rounded-lg py-3 font-semibold"
       >
         再養成一次
       </button>

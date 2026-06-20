@@ -92,6 +92,21 @@ function pickSuccess(
   return `${family}${idx}`;
 }
 
+// 即時傾向：不等養成結束，依目前精通分布給一個友善的風格標籤
+export function tendency(masteredKPs: string[]): string {
+  const c = habitCounts(masteredKPs);
+  const SELF = c[0] + c[1] + c[2];
+  const PEOPLE = c[3] + c[4] + c[5];
+  const RENEW = c[6];
+  const total = SELF + PEOPLE + RENEW;
+  if (total < 4) return "還在摸索";
+  if (SELF >= 10 && PEOPLE >= 10 && RENEW >= 3) return "均衡圓滿型";
+  if (RENEW >= 4) return "韌性更新型";
+  if (SELF - PEOPLE >= 3) return "自律精進型";
+  if (PEOPLE - SELF >= 3) return "人際共好型";
+  return "均衡發展型";
+}
+
 // 雷達圖資料：七習慣值 0-50
 export function radarValues(masteredKPs: string[]): number[] {
   return habitCounts(masteredKPs).map((n) => n * 10);
