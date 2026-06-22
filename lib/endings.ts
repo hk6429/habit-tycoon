@@ -64,22 +64,22 @@ function pickSuccess(
   else if (PEOPLE - SELF >= 3) family = "C"; // 人際共好型
   else family = "A";
 
-  // 分 5 級：均衡(A)家族總分上限 35、跨距大；B/C/D 本質不均衡、總分天花板僅 29，
-  // 故級距須各自縮放，否則 tier 3–5 永遠觸發不到（會有 9 個結局變死碼）。
+  // 40 週版：40 週最多精通約 30 個 KP，故門檻整體下修，並各自縮放級距，
+  // 否則高階 tier 永遠觸發不到（已模擬驗證 30 結局在 40 週皆可達）。
   const tier =
     family === "A"
-      ? total >= 35 // 傳說級：唯有精通全部 35 個知識點才觸發 A1「領航者」
+      ? total >= 29 // 傳說級 A1「領航者」：近乎滿養成（留 1 點餘裕，不必零失誤）
         ? 5
-        : total >= 32
+        : total >= 27
           ? 4
-          : total >= 29
+          : total >= 26
             ? 3
-            : total >= 26
+            : total >= 25
               ? 2
               : 1
-      : total >= 29
+      : total >= 28
         ? 5
-        : total >= 28
+        : total >= 27
           ? 4
           : total >= 26
             ? 3

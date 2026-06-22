@@ -68,7 +68,7 @@ export interface WeekReport {
 export interface GameState {
   gender: Gender;
   name: string;
-  week: number; // 1-52
+  week: number; // 1-40
   stats: Stats;
   masteredKPs: string[]; // 已精通知識點代碼
   log: WeekLog[];

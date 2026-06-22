@@ -32,7 +32,7 @@ import {
 type Screen = "intro" | "title" | "setup" | "hub" | "quiz" | "result" | "term" | "ending";
 
 // 期中評語觸發週（每約一學期看一次暫定走向）
-const TERM_WEEKS = [14, 27, 40];
+const TERM_WEEKS = [11, 21, 31];
 type Expr = "neutral" | "happy" | "sad";
 
 function shuffle<T>(arr: T[]): T[] {
@@ -290,7 +290,7 @@ function Title({
         <Stage bg="/title.png" />
       </div>
       <p className="text-slate-400 text-sm mb-8">
-        用一年 52 週，養成一個八年級孩子的成功品格
+        用一學年 40 週，養成一個八年級孩子的成功品格
       </p>
       <div className="flex flex-col gap-3 max-w-xs mx-auto">
         {hasSave && (

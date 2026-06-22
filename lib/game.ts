@@ -1,16 +1,16 @@
 import { ActionKind, GameState, Stats, WeekReport } from "./types";
 import { ALL_KPS, habitById } from "./habits";
 
-export const TOTAL_WEEKS = 52;
+export const TOTAL_WEEKS = 40;
 export const QUIZ_SIZE = 10; // 每知識點題數
 export const PASS_THRESHOLD = 6; // 答對幾題才精通（6/10，容許錯幾題，降低挫折）
 export const TOTAL_KPS = ALL_KPS.length; // 35
 export const STAT_MAX = 100;
 
 // 進修要花體力；體力不足就讀不動，必須先休息或鍛鍊（稀缺資源 → 取捨）
-// 18→16：52 週才剛好能精通全部 35 個 KP（35 進修＋17 休息＝52 週），
-// 讓最高階結局 A1 可達；但全部時間都拿去進修＋休息，魅力／人際就長不起來（取捨仍在）。
-export const STUDY_COST = 16;
+// 16→12：縮短為一學年 40 週後，40 週最多能精通 30 個 KP（已模擬驗證 30 結局皆可達）；
+// 體力仍是稀缺資源，全押進修＋休息就長不出魅力／人際（取捨仍在）。
+export const STUDY_COST = 12;
 export const STUDY_MIN_STAMINA = 16;
 
 const STORAGE_KEY = "habit-tycoon-save";

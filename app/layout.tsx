@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "習慣養成工廠 · 七個習慣國中生養成遊戲",
-  description: "用一年 52 週，依柯維七個習慣養成一個八年級孩子的成功品格",
+  description: "用一學年 40 週，依柯維七個習慣養成一個八年級孩子的成功品格",
 };
 
 export default function RootLayout({
