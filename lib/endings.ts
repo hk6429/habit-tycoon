@@ -92,6 +92,31 @@ function pickSuccess(
   return `${family}${idx}`;
 }
 
+// 下一階里程碑：給 Hub 一個「再精通幾個就升級結局」的明確目標感（CD2 進步與成就）
+export function nextMilestone(masteredKPs: string[]): {
+  remaining: number; // 還差幾個知識點
+  label: string; // 達成後會發生什麼
+  needCharacter: boolean; // 是否還沒精通品德根基(1-4)
+  atTop: boolean; // 已到最高養成
+} {
+  const set = new Set(masteredKPs);
+  const c = habitCounts(masteredKPs);
+  const total = c.reduce((a, b) => a + b, 0);
+  const needCharacter = !set.has("1-4");
+  // 與 pickSuccess 同步的門檻階梯（取 A 與其他家族的聯集，給最寬鬆的下一步目標）
+  const STEPS = [24, 25, 26, 27, 28, 29];
+  const next = STEPS.find((t) => t > total);
+  if (next === undefined) {
+    return { remaining: 0, label: "已達最高養成", needCharacter, atTop: true };
+  }
+  return {
+    remaining: next - total,
+    label: total < 24 ? "達成第一個成功結局" : "升一階結局",
+    needCharacter,
+    atTop: false,
+  };
+}
+
 // 即時傾向：不等養成結束，依目前精通分布給一個友善的風格標籤
 export function tendency(masteredKPs: string[]): string {
   const c = habitCounts(masteredKPs);

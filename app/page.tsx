@@ -10,7 +10,10 @@ import {
 } from "@/lib/types";
 import { HABITS, habitCounts, habitById, GROUP_LABEL } from "@/lib/habits";
 import { questionsForKP } from "@/lib/questions";
-import { judgeEnding, radarValues, abilityProfile, tendency } from "@/lib/endings";
+import { judgeEnding, endingById, radarValues, abilityProfile, tendency, nextMilestone } from "@/lib/endings";
+import { addUnlocked } from "@/lib/collection";
+import { CLASSMATES } from "@/lib/classmates";
+import { DILEMMAS, DILEMMA_WEEKS, Dilemma } from "@/lib/dilemmas";
 import {
   TOTAL_WEEKS,
   TOTAL_KPS,
@@ -20,6 +23,7 @@ import {
   ACTION_DELTAS,
   ACTION_INFO,
   studyDeltas,
+  applyDeltas,
   advanceWeek,
   isFinished,
   newGame,
@@ -29,7 +33,7 @@ import {
   weeksLeft,
 } from "@/lib/game";
 
-type Screen = "intro" | "title" | "setup" | "hub" | "quiz" | "result" | "term" | "ending";
+type Screen = "intro" | "title" | "setup" | "hub" | "quiz" | "result" | "term" | "dilemma" | "ending";
 
 // 期中評語觸發週（每約一學期看一次暫定走向）
 const TERM_WEEKS = [11, 21, 31];
@@ -137,6 +141,28 @@ function HabitBars({ masteredKPs }: { masteredKPs: string[] }) {
   );
 }
 
+// 下一階里程碑提示（CD2 進步與成就）：給玩家一個明確、近在眼前的目標
+function MilestoneHint({ masteredKPs }: { masteredKPs: string[] }) {
+  const m = nextMilestone(masteredKPs);
+  if (m.atTop) {
+    return (
+      <div className="text-center text-xs text-amber-300 mb-5">
+        🏆 已達最高養成，剩下的週數盡情補滿吧！
+      </div>
+    );
+  }
+  return (
+    <div className="text-center text-xs text-slate-400 mb-5">
+      🎯 再精通 <b className="text-emerald-300">{m.remaining}</b> 個知識點 → {m.label}
+      {m.needCharacter && (
+        <span className="block text-amber-300/90 mt-0.5">
+          ⚠️ 別忘了精通「習慣一・品德 vs 表面成功」，否則無法成為成功結局
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("intro");
   const [game, setGame] = useState<GameState | null>(null);
@@ -234,6 +260,8 @@ export default function Home() {
                 setScreen("ending");
               } else if (TERM_WEEKS.includes(game.week)) {
                 setScreen("term");
+              } else if (DILEMMA_WEEKS.includes(game.week)) {
+                setScreen("dilemma");
               } else {
                 setScreen("hub");
               }
@@ -242,6 +270,15 @@ export default function Home() {
         )}
         {screen === "term" && game && (
           <TermReview game={game} onNext={() => setScreen("hub")} />
+        )}
+        {screen === "dilemma" && game && (
+          <DilemmaScreen
+            dilemma={DILEMMAS[DILEMMA_WEEKS.indexOf(game.week)]}
+            onChoose={(deltas) => {
+              persist({ ...game, stats: applyDeltas(game.stats, deltas) });
+              setScreen("hub");
+            }}
+          />
         )}
         {screen === "ending" && game && (
           <EndingView game={game} onRestart={resetGame} />
@@ -330,6 +367,13 @@ function Setup({ onStart }: { onStart: (name: string, gender: Gender) => void })
       <div className="mb-5">
         <Stage bg={SCENE.self} sprite={spriteSrc(gender, "neutral")} />
       </div>
+      <div className="bg-gradient-to-br from-indigo-900/50 to-slate-900 border border-indigo-700/40 rounded-xl p-4 mb-6">
+        <p className="text-indigo-200 text-sm leading-relaxed">
+          接下來的一學年，這個孩子每一週的選擇——要進修、鍛鍊、交朋友，還是好好休息——
+          都會慢慢長成他的習慣。<b className="text-white">而習慣，會決定他變成哪一種大人。</b>
+        </p>
+        <p className="text-indigo-300/80 text-xs mt-2">這趟養成，由你帶他走。準備好了嗎？</p>
+      </div>
       <h2 className="text-2xl font-bold mb-6">創建你的學生</h2>
       <label className="block text-sm text-slate-400 mb-2">名字</label>
       <input
@@ -414,9 +458,10 @@ function Hub({
       <div className="bg-slate-900 rounded-xl p-4 mb-3">
         <StatBars stats={game.stats} />
       </div>
-      <div className="bg-slate-900 rounded-xl p-3 mb-5">
+      <div className="bg-slate-900 rounded-xl p-3 mb-3">
         <HabitBars masteredKPs={game.masteredKPs} />
       </div>
+      {!done && <MilestoneHint masteredKPs={game.masteredKPs} />}
 
       {done ? (
         <div className="text-center">
@@ -540,7 +585,24 @@ function ActionButton({
       </div>
       <div className="p-3">
         <div className="text-lg font-semibold mb-0.5">{info.label}</div>
-        <div className="text-xs text-slate-400">{hint ?? info.desc}</div>
+        {hint ? (
+          <div className="text-xs text-amber-400">{hint}</div>
+        ) : kind === "study" ? (
+          <div className="text-xs text-slate-400">{info.desc}</div>
+        ) : (
+          <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
+            {STAT_META.map((m) => {
+              const d = ACTION_DELTAS[kind][m.key];
+              if (!d) return null;
+              return (
+                <span key={m.key} className={d > 0 ? "text-emerald-400" : "text-red-400"}>
+                  {m.icon} {d > 0 ? "+" : ""}
+                  {d}
+                </span>
+              );
+            })}
+          </div>
+        )}
       </div>
     </button>
   );
@@ -680,6 +742,20 @@ function Result({ game, onNext }: { game: GameState; onNext: () => void }) {
     isStudy && r.kp
       ? sceneForKp(r.kp)
       : `/actions/${game.gender === "male" ? "m" : "f"}-${r.kind}.png`;
+  // 整組習慣精通里程碑（CD2 進步與成就）：這週的進修剛好把某習慣補滿 5/5
+  const completedHabit =
+    isStudy && r.passed && r.kp
+      ? (() => {
+          const h = habitById(parseInt(r.kp!.split("-")[0], 10));
+          return habitCounts(game.masteredKPs)[h.id - 1] === 5 ? h : null;
+        })()
+      : null;
+  // 連續同一行動的「勢頭」回饋（CD3 賦能創造與回饋）
+  let streak = 0;
+  for (let i = game.log.length - 1; i >= 0; i--) {
+    if (game.log[i].kind === r.kind) streak++;
+    else break;
+  }
 
   return (
     <div className="pt-6 text-center">
@@ -706,6 +782,14 @@ function Result({ game, onNext }: { game: GameState; onNext: () => void }) {
         </p>
       )}
 
+      {completedHabit && (
+        <div className="mx-auto max-w-md bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-500/40 rounded-lg py-2.5 px-4 mb-3">
+          <span className="text-amber-200 font-bold text-sm">
+            ⭐ 徽章解鎖：整組精通【習慣{completedHabit.id}・{completedHabit.name}】！
+          </span>
+        </div>
+      )}
+
       <div className="inline-flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm mb-4">
         {STAT_META.map((m) => {
           const d = r.deltas[m.key];
@@ -718,6 +802,12 @@ function Result({ game, onNext }: { game: GameState; onNext: () => void }) {
           );
         })}
       </div>
+
+      {streak >= 2 && (
+        <div className="text-sm text-orange-300 mb-3">
+          🔥 {isStudy ? `連續 ${streak} 週埋頭進修！` : `連續 ${streak} 週${info.label}，勢頭正旺！`}
+        </div>
+      )}
 
       {r.event && (
         <div className="bg-indigo-900/40 text-indigo-200 rounded-lg p-3 text-sm mb-4 max-w-md mx-auto">
@@ -779,6 +869,69 @@ function TermReview({ game, onNext }: { game: GameState; onNext: () => void }) {
   );
 }
 
+/* ---------------- 兩難抉擇事件（CD7 不可預測與好奇） ---------------- */
+function DilemmaScreen({
+  dilemma,
+  onChoose,
+}: {
+  dilemma: Dilemma;
+  onChoose: (deltas: Partial<Stats>) => void;
+}) {
+  const [chosen, setChosen] = useState<number | null>(null);
+  const opt = chosen !== null ? dilemma.options[chosen] : null;
+
+  return (
+    <div className="pt-8 pb-12">
+      <div className="text-center mb-2">
+        <span className="text-xs px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-200 border border-indigo-500/30">
+          ✦ 抉擇時刻 · {dilemma.habitHint}
+        </span>
+      </div>
+      <p className="text-lg text-slate-100 leading-relaxed text-center px-2 mb-6">
+        {dilemma.prompt}
+      </p>
+
+      {opt === null ? (
+        <div className="space-y-3">
+          {dilemma.options.map((o, i) => (
+            <button
+              key={i}
+              onClick={() => setChosen(i)}
+              className="w-full text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-indigo-500 rounded-xl p-4 transition"
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-4">
+            <p className="text-slate-200 mb-3">{opt.result}</p>
+            <div className="inline-flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm">
+              {STAT_META.map((m) => {
+                const d = opt.deltas[m.key];
+                if (!d) return null;
+                return (
+                  <span key={m.key} className={d > 0 ? "text-emerald-400" : "text-red-400"}>
+                    {m.icon} {m.label} {d > 0 ? "+" : ""}
+                    {d}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+          <button
+            onClick={() => onChoose(opt.deltas)}
+            className="w-full bg-emerald-600 hover:bg-emerald-500 rounded-lg py-3 font-semibold"
+          >
+            繼續養成
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EndingView({ game, onRestart }: { game: GameState; onRestart: () => void }) {
   const ending = useMemo(() => judgeEnding(game.masteredKPs), [game.masteredKPs]);
   const ability = useMemo(() => abilityProfile(game.stats), [game.stats]);
@@ -786,6 +939,11 @@ function EndingView({ game, onRestart }: { game: GameState; onRestart: () => voi
   const success = ending.type === "success";
   const legendary = ending.id === "A1"; // 傳說級：全 35 知識點精通
   const [shared, setShared] = useState(false);
+
+  // 記錄到結局圖鑑收藏（CD4 擁有感）
+  useEffect(() => {
+    addUnlocked(ending.id);
+  }, [ending.id]);
 
   function share() {
     const c = habitCounts(game.masteredKPs);
@@ -830,6 +988,9 @@ function EndingView({ game, onRestart }: { game: GameState; onRestart: () => voi
           {ability.label}
         </span>
       </div>
+      <p className="text-center text-indigo-300/80 text-sm mb-1">
+        一年前你問：{game.name}會變成哪種大人？答案揭曉——
+      </p>
       <h1
         className={`text-3xl font-bold text-center mb-1 ${
           legendary
@@ -861,6 +1022,8 @@ function EndingView({ game, onRestart }: { game: GameState; onRestart: () => voi
       <Section title="人生陷阱警告" body={ending.trap} accent="amber" />
       <Section title="給你的真心話" body={ending.truth} accent="emerald" />
 
+      <ClassmatesBoard playerEndingTitle={ending.title} />
+
       <button
         onClick={share}
         className="w-full mt-6 border-2 border-indigo-500 text-indigo-300 hover:bg-indigo-500/10 rounded-lg py-3 font-semibold"
@@ -873,6 +1036,38 @@ function EndingView({ game, onRestart }: { game: GameState; onRestart: () => voi
       >
         再養成一次
       </button>
+    </div>
+  );
+}
+
+/* ---------------- 班級結局牆（CD5 社會影響與關聯） ---------------- */
+function ClassmatesBoard({ playerEndingTitle }: { playerEndingTitle: string }) {
+  return (
+    <div className="bg-slate-900 rounded-xl p-4 mt-6">
+      <h3 className="font-bold mb-1">班級結局牆</h3>
+      <p className="text-xs text-slate-400 mb-3">
+        同一年，你的同學養成了這些結局——你的【{playerEndingTitle}】跟誰最像、又跟誰最不一樣？貼到班上比比看。
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        {CLASSMATES.map((c) => {
+          const e = endingById(c.endingId);
+          return (
+            <div key={c.name} className="rounded-lg overflow-hidden bg-slate-800/60 border border-slate-800">
+              <div className="relative aspect-[2/1]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/endings/${c.endingId}.png`} alt={e.title} className="w-full h-full object-cover" />
+                <span className="absolute bottom-1 left-2 text-xs font-bold text-white drop-shadow">
+                  {c.name}
+                </span>
+              </div>
+              <div className="p-2">
+                <div className="text-xs font-semibold text-slate-200">{e.title}</div>
+                <div className="text-[11px] text-slate-500 leading-snug mt-0.5">{c.blurb}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
