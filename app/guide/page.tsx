@@ -58,14 +58,27 @@ const FAILURES: { id: string; cause: string }[] = [
   { id: "F7", cause: "最弱的是「習慣七 不斷更新」" },
 ];
 
-function Tag({ children, color }: { children: React.ReactNode; color: string }) {
+function EndingCard({ e, accent, badge }: { e: Ending; accent: string; badge: string }) {
   return (
-    <span
-      className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-      style={{ background: `${color}22`, color, border: `1px solid ${color}55` }}
-    >
-      {children}
-    </span>
+    <div className="rounded-xl overflow-hidden bg-slate-800/60 border border-slate-800">
+      <div className="relative aspect-[2/1]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={`/endings/${e.id}.png`} alt={e.title} className="w-full h-full object-cover" />
+        <span
+          className="absolute top-2 left-2 text-[11px] font-bold px-2 py-0.5 rounded-full"
+          style={{ background: `${accent}cc`, color: "#0f172a", border: `1px solid ${accent}` }}
+        >
+          {e.id}
+        </span>
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-3 pt-6 pb-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-white text-sm">{e.title}</span>
+            <span className="text-[11px]" style={{ color: accent }}>{badge}</span>
+          </div>
+        </div>
+      </div>
+      <p className="text-xs text-slate-400 leading-relaxed px-3 py-2.5">{e.summary}</p>
+    </div>
   );
 }
 
@@ -113,22 +126,10 @@ export default function GuidePage() {
                 <b>家族條件：</b>{f.condition}
               </p>
               <p className="text-xs text-slate-500 mb-3">{f.note}</p>
-              <div className="space-y-2">
-                {[1, 2, 3, 4, 5].map((idx) => {
-                  const e = byId(`${f.key}${idx}`);
-                  return (
-                    <div key={e.id} className="flex items-start gap-3 rounded-lg bg-slate-800/60 px-3 py-2">
-                      <Tag color={f.accent}>{e.id}</Tag>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold">{e.title}</span>
-                          <span className="text-[11px] text-slate-400">總分 ≥ {thr[idx]}</span>
-                        </div>
-                        <p className="text-xs text-slate-400 leading-relaxed mt-0.5">{e.summary}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[1, 2, 3, 4, 5].map((idx) => (
+                  <EndingCard key={`${f.key}${idx}`} e={byId(`${f.key}${idx}`)} accent={f.accent} badge={`總分 ≥ ${thr[idx]}`} />
+                ))}
               </div>
             </section>
           );
@@ -141,20 +142,22 @@ export default function GuidePage() {
         只要沒滿足成功門檻就會落入這裡。先看「特定偏差」，再看「最弱的習慣」。
       </p>
       <section className="rounded-2xl bg-slate-900 border border-slate-800 p-5 mb-6">
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {FAILURES.map((f) => {
             const e = byId(f.id);
             return (
-              <div key={e.id} className="flex items-start gap-3 rounded-lg bg-slate-800/60 px-3 py-2">
-                <Tag color="#f87171">{e.id}</Tag>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold">{e.title}</span>
+              <div key={e.id} className="rounded-xl overflow-hidden bg-slate-800/60 border border-slate-800">
+                <div className="relative aspect-[2/1]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/endings/${e.id}.png`} alt={e.title} className="w-full h-full object-cover" />
+                  <span className="absolute top-2 left-2 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-400/90 text-slate-900 border border-red-300">
+                    {e.id}
+                  </span>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-3 pt-6 pb-2">
+                    <span className="font-bold text-white text-sm">{e.title}</span>
                   </div>
-                  <p className="text-xs text-slate-400 leading-relaxed mt-0.5">
-                    成因：{f.cause}
-                  </p>
                 </div>
+                <p className="text-xs text-slate-400 leading-relaxed px-3 py-2.5">成因：{f.cause}</p>
               </div>
             );
           })}
