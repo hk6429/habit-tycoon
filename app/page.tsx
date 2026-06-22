@@ -307,6 +307,12 @@ function Title({
         >
           開始新養成
         </button>
+        <a
+          href="/guide"
+          className="rounded-lg py-3 font-semibold border border-slate-700 text-slate-300 hover:bg-slate-800"
+        >
+          📖 結局圖鑑：30 種結局怎麼養成
+        </a>
       </div>
       <p className="text-slate-600 text-xs mt-12">
         每週可：進修 / 鍛鍊 / 社交 / 休息 — 體力有限，養成靠取捨
